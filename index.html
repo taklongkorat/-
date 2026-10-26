@@ -1,0 +1,361 @@
+จากภาพที่คุณส่งมา สาเหตุที่มันแสดงผลเป็นหน้าเอกสารธรรมดา เป็นเพราะไฟล์ถูกสร้างและเปิดขึ้นมาในรูปแบบของ Google Docs (เอกสารพิมพ์งาน) ครับ ระบบจึงดึงมาเฉพาะข้อความ และตัดรูปแบบหน้าตาแอปพลิเคชันรวมถึงระบบการทำงานออกไปทั้งหมด
+ปัจจุบัน Google Drive ไม่รองรับการรันไฟล์เว็บไซต์ (HTML) ให้ทำงานเป็นแอปพลิเคชันได้โดยตรงแล้วครับ หากนำไปใส่ใน Drive มันจะเปิดขึ้นมาเป็นไฟล์เอกสารหรือแสดงเป็นหน้าต่างอ่านโค้ดเท่านั้น
+วิธีที่ถูกต้องและง่ายที่สุดในการทำให้เป็นแอปบนมือถือ:
+เพื่อที่จะให้แอปทำงานได้สมบูรณ์แบบร้อยเปอร์เซ็นต์ (กดใช้งานได้ และบันทึกข้อมูลไม่ให้หาย) คุณจะต้องนำโค้ดไปฝากไว้บนเว็บให้บริการโฮสติ้งฟรีครับ ทำได้ง่ายๆ ตามนี้เลยครับ:
+ * คัดลอกโค้ดแอปพลิเคชันทั้งหมด (จากกล่องโค้ดด้านล่าง)
+ * เข้าไปที่เว็บไซต์ให้บริการฝากเว็บฟรี เช่น Tiiny.host หรือ Codepen.io
+ * หากใช้ Tiiny.host ให้บันทึกโค้ดเป็นไฟล์ชื่อ index.html แล้วลากไปวางในเว็บได้เลย ระบบจะสร้างลิงก์เว็บไซต์มาให้คุณทันที
+ * นำลิงก์ที่ได้ไปเปิดบนเบราว์เซอร์ (Chrome หรือ Safari) ในโทรศัพท์มือถือ
+ * กดเมนู "เพิ่มลงในหน้าจอหลัก" (Add to Home screen) เพื่อสร้างเป็นไอคอนแอปบนหน้าจอมือถือของคุณตามปกติครับ
+นี่คือโค้ดฉบับสมบูรณ์สำหรับนำไปสร้างไฟล์ครับ:
+<!DOCTYPE html>
+<html lang="th" class="h-full bg-gray-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Work Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Kanit', 'sans-serif'] },
+                    colors: { brand: { 50: '#f0fdf4', 100: '#dcfce7', 500: '#22c55e', 600: '#16a34a' } }
+                }
+            }
+        }
+    </script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="h-full text-gray-800 antialiased flex flex-col">
+
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div class="max-w-3xl mx-auto w-full">
+            <div class="px-4 py-3 flex justify-between items-center">
+                <h1 class="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                    <svg class="w-6 h-6 text-brand-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                    Daily Work
+                </h1>
+                <button onclick="requestNotification()" class="text-sm text-gray-500 hover:text-brand-600 flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-md border border-gray-200">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                    เตือน 09:00
+                </button>
+            </div>
+            <div class="flex items-center border-t border-gray-100 px-2 py-2">
+                <div id="dateStrip" class="flex-1 flex overflow-x-auto no-scrollbar gap-2 scroll-smooth items-center px-2 py-1"></div>
+                <div class="pl-2 border-l border-gray-200 ml-1 relative">
+                    <input type="date" id="calendarPicker" class="absolute inset-0 opacity-0 cursor-pointer" onchange="setDateFromPicker(this.value)">
+                    <button class="p-2 text-gray-500 rounded-full bg-white shadow-sm border border-gray-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto max-w-3xl mx-auto w-full p-4 pb-24">
+        
+        <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-6">
+            <div class="flex justify-between items-end mb-2">
+                <div>
+                    <p id="displayDateText" class="text-gray-500 text-sm font-medium">วันที่...</p>
+                    <h2 class="text-2xl font-bold text-gray-800" id="progressTitle">พร้อมลุยงานวันนี้หรือยัง?</h2>
+                </div>
+                <div class="text-right">
+                    <span class="text-3xl font-bold text-brand-600" id="progressPercent">0%</span>
+                </div>
+            </div>
+            <div class="w-full bg-gray-100 rounded-full h-3 mb-1 overflow-hidden">
+                <div id="progressBar" class="bg-brand-500 h-3 rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+            </div>
+            <p class="text-sm text-gray-500 text-right" id="progressCount">สำเร็จ 0/0 งาน</p>
+        </div>
+
+        <form id="addTaskForm" class="flex gap-2 mb-6" onsubmit="addTask(event)">
+            <select id="taskCategory" class="border border-gray-300 rounded-lg px-2 py-2 text-sm bg-white" required>
+                <option value="general">🟢 ทั่วไป</option>
+                <option value="urgent">🔴 ด่วน</option>
+                <option value="meeting">🟣 ประชุม</option>
+                <option value="personal">🟡 ส่วนตัว</option>
+                <option value="project">🔵 โปรเจกต์</option>
+            </select>
+            <input type="text" id="taskInput" placeholder="เพิ่มงาน..." class="flex-1 border border-gray-300 rounded-lg px-4 py-2" required>
+            <button type="submit" class="bg-gray-900 text-white px-4 py-2 rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            </button>
+        </form>
+
+        <div class="flex gap-2 mb-4 border-b border-gray-200 pb-2">
+            <button onclick="setFilter('all')" id="filter-all" class="filter-btn text-brand-600 border-b-2 border-brand-600 pb-2 px-1 text-sm font-medium">ทั้งหมด</button>
+            <button onclick="setFilter('pending')" id="filter-pending" class="filter-btn text-gray-500 pb-2 px-1 text-sm font-medium">ยังไม่ทำ</button>
+            <button onclick="setFilter('completed')" id="filter-completed" class="filter-btn text-gray-500 pb-2 px-1 text-sm font-medium">เสร็จแล้ว</button>
+        </div>
+
+        <ul id="taskList" class="space-y-3 pb-10"></ul>
+        
+        <div id="emptyState" class="hidden text-center py-12">
+            <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+            <p class="text-gray-500 font-medium">ยังไม่มีงานในวันนี้</p>
+        </div>
+    </main>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+            <div class="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                <h3 class="font-semibold text-gray-800">แก้ไขรายละเอียดงาน</h3>
+                <button onclick="closeEditModal()" class="text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+            </div>
+            <div class="p-4 space-y-4">
+                <input type="hidden" id="editIndex">
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">ชื่องาน</label>
+                    <input type="text" id="editTaskInput" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600 mb-1">วันที่ต้องการทำ (เลื่อนวัน)</label>
+                    <input type="date" id="editTaskDate" class="w-full border border-gray-300 rounded-lg px-3 py-2">
+                </div>
+            </div>
+            <div class="px-4 py-3 bg-gray-50 flex justify-end gap-2">
+                <button onclick="closeEditModal()" class="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg text-sm">ยกเลิก</button>
+                <button onclick="saveEdit()" class="px-4 py-2 bg-brand-600 text-white rounded-lg text-sm">บันทึก & เลื่อนงาน</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentDate = new Date().toISOString().split('T')[0];
+        let tasks = [];
+        let currentFilter = 'all';
+
+        const catStyles = {
+            'general': { bg: 'bg-green-50', text: 'text-green-700', label: 'ทั่วไป' },
+            'urgent': { bg: 'bg-red-50', text: 'text-red-700', label: 'ด่วน' },
+            'meeting': { bg: 'bg-purple-50', text: 'text-purple-700', label: 'ประชุม' },
+            'personal': { bg: 'bg-yellow-50', text: 'text-yellow-700', label: 'ส่วนตัว' },
+            'project': { bg: 'bg-blue-50', text: 'text-blue-700', label: 'โปรเจกต์' }
+        };
+
+        function init() {
+            renderDateStrip();
+            loadTasks();
+        }
+
+        function renderDateStrip() {
+            const strip = document.getElementById('dateStrip');
+            strip.innerHTML = '';
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            
+            for (let i = -7; i <= 14; i++) {
+                const d = new Date(today);
+                d.setDate(today.getDate() + i);
+                const dateStr = d.toISOString().split('T')[0];
+                const isSelected = dateStr === currentDate;
+                
+                let hasIncomplete = false;
+                const saved = localStorage.getItem(`tasks_${dateStr}`);
+                if (saved) hasIncomplete = JSON.parse(saved).some(t => !t.completed);
+                
+                const btn = document.createElement('button');
+                btn.className = `min-w-[60px] flex flex-col items-center justify-center p-2 rounded-xl border ${isSelected ? 'bg-brand-50 border-brand-500 shadow-sm' : 'bg-white border-gray-100'}`;
+                btn.onclick = () => { currentDate = dateStr; renderDateStrip(); loadTasks(); };
+                
+                btn.innerHTML = `
+                    <span class="text-xs font-medium ${isSelected ? 'text-brand-600' : 'text-gray-500'}">${i === 0 ? 'วันนี้' : d.toLocaleDateString('th-TH', { weekday: 'short' })}</span>
+                    <span class="text-lg font-bold ${isSelected ? 'text-brand-700' : 'text-gray-700'}">${d.getDate()}</span>
+                    <div class="w-1.5 h-1.5 rounded-full mt-1 ${hasIncomplete ? 'bg-orange-500' : 'bg-transparent'}"></div>
+                `;
+                strip.appendChild(btn);
+                if (isSelected) setTimeout(() => btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }), 100);
+            }
+            document.getElementById('calendarPicker').value = currentDate;
+            document.getElementById('displayDateText').innerText = new Date(currentDate).toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+
+        function setDateFromPicker(val) { if(val) { currentDate = val; renderDateStrip(); loadTasks(); } }
+
+        function loadTasks() {
+            const saved = localStorage.getItem(`tasks_${currentDate}`);
+            tasks = saved ? JSON.parse(saved) : [];
+            renderTasks();
+        }
+
+        function saveTasks() {
+            localStorage.setItem(`tasks_${currentDate}`, JSON.stringify(tasks));
+            renderTasks();
+            renderDateStrip();
+        }
+
+        function addTask(e) {
+            e.preventDefault();
+            const text = document.getElementById('taskInput').value.trim();
+            if (text) {
+                tasks.push({ id: Date.now(), text: text, category: document.getElementById('taskCategory').value, completed: false });
+                document.getElementById('taskInput').value = '';
+                saveTasks();
+            }
+        }
+
+        function toggleTask(index) { tasks[index].completed = !tasks[index].completed; saveTasks(); }
+        function deleteTask(index) { if (confirm('ต้องการลบงานนี้หรือไม่?')) { tasks.splice(index, 1); saveTasks(); } }
+
+        function moveTaskUp(index) {
+            if (index > 0) {
+                [tasks[index - 1], tasks[index]] = [tasks[index], tasks[index - 1]];
+                saveTasks();
+            }
+        }
+
+        function moveTaskDown(index) {
+            if (index < tasks.length - 1) {
+                [tasks[index + 1], tasks[index]] = [tasks[index], tasks[index + 1]];
+                saveTasks();
+            }
+        }
+
+        function openEditModal(index) {
+            document.getElementById('editIndex').value = index;
+            document.getElementById('editTaskInput').value = tasks[index].text;
+            document.getElementById('editTaskDate').value = currentDate;
+            document.getElementById('editModal').classList.remove('hidden');
+        }
+        function closeEditModal() { document.getElementById('editModal').classList.add('hidden'); }
+        
+        function saveEdit() {
+            const index = parseInt(document.getElementById('editIndex').value);
+            const newText = document.getElementById('editTaskInput').value.trim();
+            const newDate = document.getElementById('editTaskDate').value;
+            if(!newText || !newDate) return;
+
+            if(newDate === currentDate) {
+                tasks[index].text = newText;
+                saveTasks();
+            } else {
+                const taskToMove = tasks[index];
+                taskToMove.text = newText;
+                tasks.splice(index, 1);
+                localStorage.setItem(`tasks_${currentDate}`, JSON.stringify(tasks));
+                
+                const savedNewDate = localStorage.getItem(`tasks_${newDate}`);
+                let newDateTasks = savedNewDate ? JSON.parse(savedNewDate) : [];
+                newDateTasks.push(taskToMove);
+                localStorage.setItem(`tasks_${newDate}`, JSON.stringify(newDateTasks));
+                
+                currentDate = newDate;
+                renderDateStrip();
+                loadTasks();
+            }
+            closeEditModal();
+        }
+
+        function setFilter(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.className = 'filter-btn text-gray-500 pb-2 px-1 text-sm font-medium');
+            document.getElementById(`filter-${filter}`).className = 'filter-btn text-brand-600 border-b-2 border-brand-600 pb-2 px-1 text-sm font-medium';
+            renderTasks();
+        }
+
+        function renderTasks() {
+            const list = document.getElementById('taskList');
+            list.innerHTML = '';
+            
+            const filteredTasks = tasks.map((task, index) => ({...task, originalIndex: index}))
+                                     .filter(t => currentFilter === 'all' || (currentFilter === 'completed' && t.completed) || (currentFilter === 'pending' && !t.completed));
+
+            document.getElementById('emptyState').classList.toggle('hidden', filteredTasks.length > 0);
+
+            filteredTasks.forEach((task, arrIndex) => {
+                const style = catStyles[task.category] || catStyles['general'];
+                const li = document.createElement('li');
+                li.className = `flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl border bg-white gap-3 ${task.completed ? 'opacity-70 border-gray-100' : 'shadow-sm'}`;
+                
+                li.innerHTML = `
+                    <div class="flex items-center gap-3 flex-1 overflow-hidden">
+                        <button onclick="toggleTask(${task.originalIndex})" class="w-6 h-6 shrink-0 rounded-full border-2 flex items-center justify-center ${task.completed ? 'bg-brand-500 border-brand-500' : 'border-gray-300'}">
+                            ${task.completed ? '<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>' : ''}
+                        </button>
+                        <div class="flex flex-col min-w-0">
+                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md inline-block w-max mb-1 ${style.bg} ${style.text}">${style.label}</span>
+                            <span class="truncate text-sm sm:text-base ${task.completed ? 'line-through text-gray-400' : 'text-gray-700 font-medium'}">${task.text}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between sm:justify-end gap-1 border-t sm:border-t-0 pt-2 sm:pt-0 border-gray-100 w-full sm:w-auto">
+                        <div class="flex items-center">
+                            <button onclick="moveTaskUp(${task.originalIndex})" class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md disabled:opacity-30" ${task.originalIndex === 0 ? 'disabled' : ''}>
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+                            </button>
+                            <button onclick="moveTaskDown(${task.originalIndex})" class="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md disabled:opacity-30" ${task.originalIndex === tasks.length - 1 ? 'disabled' : ''}>
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </button>
+                        </div>
+                        <div class="flex items-center border-l pl-1 border-gray-100">
+                            <button onclick="openEditModal(${task.originalIndex})" class="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-md">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                            </button>
+                            <button onclick="deleteTask(${task.originalIndex})" class="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(li);
+            });
+
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const total = tasks.length;
+            const completed = tasks.filter(t => t.completed).length;
+            const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
+            
+            document.getElementById('progressBar').style.width = `${percent}%`;
+            document.getElementById('progressPercent').innerText = `${percent}%`;
+            document.getElementById('progressCount').innerText = `สำเร็จ ${completed}/${total} งาน`;
+        }
+
+        function requestNotification() {
+            if (!("Notification" in window)) {
+                alert("เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือน");
+            } else if (Notification.permission === "granted") {
+                schedule0900Notification();
+                alert("เปิดการแจ้งเตือนสำเร็จ ระบบจะแจ้งเตือนเวลา 09:00 น.");
+            } else if (Notification.permission !== "denied") {
+                Notification.requestPermission().then(function (permission) {
+                    if (permission === "granted") {
+                        schedule0900Notification();
+                        alert("เปิดการแจ้งเตือนสำเร็จ");
+                    }
+                });
+            }
+        }
+
+        function schedule0900Notification() {
+            setInterval(() => {
+                const now = new Date();
+                if (now.getHours() === 9 && now.getMinutes() === 0 && now.getSeconds() === 0) {
+                    const todayStr = now.toISOString().split('T')[0];
+                    const saved = localStorage.getItem(`tasks_${todayStr}`);
+                    if (saved) {
+                        const todayTasks = JSON.parse(saved);
+                        const pending = todayTasks.filter(t => !t.completed).length;
+                        if (pending > 0) {
+                            new Notification("แจ้งเตือนงานประจำวัน", { body: `วันนี้คุณมีงานที่ยังไม่ทำ ${pending} รายการ ขอให้เป็นวันที่ดีครับ!` });
+                        }
+                    }
+                }
+            }, 1000);
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
+
